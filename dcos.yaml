@@ -1,0 +1,104 @@
+---
+- hosts: new
+  remote_user: root
+  tasks:
+
+  - name: add overlay.conf
+    copy:
+      content: ""
+      dest: /etc/modules-load.d/overlay.conf
+  - name: change network
+    lineinfile:
+      dest: /etc/modules-load.d/overlay.conf
+      line: overlay
+
+  - name: change network
+    lineinfile:
+      dest: /etc/sysconfig/network-scripts/ifcfg-ens224
+      regexp: ^DEFROUTE=
+      line: DEFROUTE=no
+
+  - name: stop firewalld
+    command: systemctl stop firewalld
+  - name: disable firewalld
+    command: systemctl disable firewalld
+
+  - name: disable password
+    lineinfile:
+      dest: /etc/sudoers
+      regexp: "NOPASSWD"
+      line: "%wheel        ALL=(ALL)       NOPASSWD: ALL"
+
+  - name: change selinux config
+    lineinfile:
+      dest: /etc/selinux/config
+      regexp: "^SELINUX=enforcing"
+      line: "SELINUX=disable"
+
+  - name: add nogroup group
+    group:
+      name: nogroup
+      state: present
+  - name: add docker group
+    group:
+      name: docker
+      state: present
+
+  - name: upgrade all packages
+    yum:
+      name: '*'
+      state: latest
+  - name: install the latest version of unzip
+    yum:
+      name: unzip
+      state: latest
+
+  - name: install ntp
+    yum:
+      name: ntp
+      state: latest
+  - name: NTP synchronized 10.230.14.161
+    command: ntpdate 10.230.14.161
+  - name: NTP enabled
+    command: timedatectl set-ntp true
+
+  - name: install the latest version of yum-utils,device-mapper-persistent-data,lvm2
+    yum:
+      name: yum-utils,device-mapper-persistent-data,lvm2
+      state: latest
+
+  - name: add docker-ce.repo
+    command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+  - name: install the latest version of docker-ce-17.06.0
+    yum:
+      name: docker-ce-17.06.0.ce-1.el7.centos
+      state: latest
+
+  - name: add docker.service.d dir
+    file:
+      path: /etc/systemd/system/docker.service.d/
+      state: directory
+  - name: add override.conf
+    copy:
+      content: ""
+      dest: /etc/systemd/system/docker.service.d/override.conf
+  - name: change override.conf
+    lineinfile:
+      path: /etc/systemd/system/docker.service.d/override.conf
+      line: |
+        [Service]
+        ExecStart=
+        ExecStart=/usr/bin/dockerd --storage-driver=overlay
+
+  - name: docker service enabled
+    command: systemctl enable docker
+
+  - name: reboot host
+    shell: sleep 2 && /sbin/shutdown -r now
+    become: yes
+    async: 1
+    poll: 0
+
+  - name: waiting for server to come back
+    local_action: wait_for host={{ ansible_default_ipv4.address }} port=22 state=started delay=30 timeout=60
