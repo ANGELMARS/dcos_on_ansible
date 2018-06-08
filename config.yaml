@@ -1,0 +1,23 @@
+---
+bootstrap_url: http://10.230.14.200:82
+cluster_name: cnpc-dcos
+exhibitor_storage_backend: static
+master_discovery: static
+ip_detect_public_filename: /genconf/ip-detect
+log_directory: /genconf/logs
+master_list:
+- 10.230.14.181
+- 10.230.14.182
+- 10.230.14.183
+resolvers:
+# - 8.8.4.4
+# - 8.8.8.8
+- 10.230.14.140
+use_proxy: 'false'
+oauth_enabled: 'false'
+ssh_port: 22
+ssh_user: root
+agent_list:
+- 10.230.14.184
+- 10.230.14.185
+- 10.230.14.186
